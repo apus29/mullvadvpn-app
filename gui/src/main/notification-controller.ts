@@ -77,7 +77,7 @@ export default class NotificationController {
         silent: true,
         icon: this.notificationIcon,
       });
-      this.scheduleNotification(notification);
+      this.scheduleNotification(notification, false);
     });
   }
 
@@ -105,7 +105,7 @@ export default class NotificationController {
         shell.openExternal(config.links.download);
       });
 
-      this.scheduleNotification(notification);
+      this.scheduleNotification(notification, false);
     });
   }
 
@@ -116,7 +116,7 @@ export default class NotificationController {
       silent: true,
       icon: this.notificationIcon,
     });
-    this.scheduleNotification(notification);
+    this.scheduleNotification(notification, false);
   }
 
   public cancelPendingNotifications() {
@@ -153,7 +153,7 @@ export default class NotificationController {
       notification: newNotification,
     };
 
-    this.scheduleNotification(newNotification);
+    this.scheduleNotification(newNotification, true);
   }
 
   private presentNotificationOnce(notificationName: string, presentNotification: () => void) {
@@ -164,12 +164,14 @@ export default class NotificationController {
     }
   }
 
-  private scheduleNotification(notification: Notification) {
+  private scheduleNotification(notification: Notification, autoHide: boolean) {
     this.addPendingNotification(notification);
 
     notification.show();
 
-    setTimeout(() => notification.close(), 4000);
+    if (autoHide) {
+      setTimeout(() => notification.close(), 4000);
+    }
   }
 
   private addPendingNotification(notification: Notification) {
