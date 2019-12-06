@@ -110,11 +110,11 @@ class SelectLocationController: UITableViewController {
             })
             .receive(on: DispatchQueue.main)
             .handleEvents(receiveSubscription: { _ in
-                self.activityIndicator.isAnimating = true
+                self.activityIndicator.startAnimating()
             }, receiveCompletion: { _ in
-                self.activityIndicator.isAnimating = false
+                self.activityIndicator.stopAnimating()
             }, receiveCancel: {
-                self.activityIndicator.isAnimating = false
+                self.activityIndicator.stopAnimating()
             })
             .sink(receiveCompletion: { (completion) in
                 if case .failure(let error) = completion {
@@ -161,7 +161,7 @@ class SelectLocationController: UITableViewController {
     }
 
     private func updateDataSource() {
-        dataSource = relayList?.intoRelayDataSourceItemList(filter: { (item) -> Bool in
+        dataSource = relayList?.intoRelayDataSourceItemList(using: { (item) -> Bool in
             return expandedItems.contains(item.relayLocation)
         }) ?? []
     }
@@ -238,12 +238,15 @@ class SelectLocationController: UITableViewController {
     }
 }
 
-/// Private extension to convert a RelayList into a flat list of RelayListDataSourceItems
 private extension RelayList {
 
-    typealias FilterFunc = (RelayListDataSourceItem) -> Bool
+    typealias EvaluatorFn = (RelayListDataSourceItem) -> Bool
 
-    func intoRelayDataSourceItemList(filter: FilterFunc) -> [RelayListDataSourceItem] {
+    /// Turn `RelayList` into a flat list of `RelayListDataSourceItem`s.
+    ///
+    /// - Parameters evaluator: A closure that determines if the sub-tree should be rendered when it
+    ///                         returns `true`, or dropped when it returns `false`
+    func intoRelayDataSourceItemList(using evaluator: EvaluatorFn) -> [RelayListDataSourceItem] {
         var items = [RelayListDataSourceItem]()
 
         for country in countries {
@@ -256,33 +259,32 @@ private extension RelayList {
                     }
                 })
             )
-            let countryItem = RelayListDataSourceItem.country(wrappedCountry)
 
+            let countryItem = RelayListDataSourceItem.country(wrappedCountry)
             items.append(countryItem)
 
-            guard country.cities.contains(where: { !$0.relays.isEmpty }) &&
-                filter(countryItem) else { continue }
-
-            for city in country.cities {
-                let wrappedCity = RelayListDataSourceItem.City(
-                    countryCode: country.code,
-                    cityCode: city.code,
-                    name: city.name,
-                    hasActiveRelays: city.relays.contains(where: { $0.active })
-                )
-                let cityItem = RelayListDataSourceItem.city(wrappedCity)
-
-                items.append(cityItem)
-
-                guard !city.relays.isEmpty && filter(cityItem) else { continue }
-
-                for host in city.relays {
-                    let wrappedHost = RelayListDataSourceItem.Hostname(
+            if evaluator(countryItem) {
+                for city in country.cities {
+                    let wrappedCity = RelayListDataSourceItem.City(
                         countryCode: country.code,
                         cityCode: city.code,
-                        hostname: host.hostname,
-                        active: host.active)
-                    items.append(.hostname(wrappedHost))
+                        name: city.name,
+                        hasActiveRelays: city.relays.contains(where: { $0.active })
+                    )
+
+                    let cityItem = RelayListDataSourceItem.city(wrappedCity)
+                    items.append(cityItem)
+
+                    if evaluator(cityItem) {
+                        for host in city.relays {
+                            let wrappedHost = RelayListDataSourceItem.Hostname(
+                                countryCode: country.code,
+                                cityCode: city.code,
+                                hostname: host.hostname,
+                                active: host.active)
+                            items.append(.hostname(wrappedHost))
+                        }
+                    }
                 }
             }
         }
