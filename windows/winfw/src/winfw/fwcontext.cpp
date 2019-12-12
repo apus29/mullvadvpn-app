@@ -168,6 +168,7 @@ bool FwContext::applyPolicyConnected
 		tunnelInterfaceAlias,
 		wfp::IpAddress(v4DnsHost),
 		(v6DnsHost != nullptr) ? std::make_unique<wfp::IpAddress>(v6DnsHost) : nullptr,
+		wfp::IpAddress(relay.ip),
 		relay.port
 	));
 

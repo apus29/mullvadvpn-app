@@ -13,10 +13,11 @@ namespace rules
 {
 
 RestrictDns::RestrictDns(const std::wstring &tunnelInterfaceAlias, const wfp::IpAddress v4DnsHost, std::unique_ptr<wfp::IpAddress> v6DnsHost,
-	uint16_t relayPort)
+	wfp::IpAddress relayIp, uint16_t relayPort)
 	: m_tunnelInterfaceAlias(tunnelInterfaceAlias)
 	, m_v4DnsHost(v4DnsHost)
 	, m_v6DnsHost(std::move(v6DnsHost))
+	, m_relayIp(relayIp)
 	, m_relayPort(relayPort)
 
 {
@@ -50,6 +51,7 @@ bool RestrictDns::apply(IObjectInstaller &objectInstaller)
 
 		conditionBuilder.add_condition(ConditionPort::Remote(53));
 		conditionBuilder.add_condition(ConditionInterface::Alias(m_tunnelInterfaceAlias, CompareNeq()));
+		conditionBuilder.add_condition(ConditionIp::Remote(m_relayIp, CompareNeq()));
 
 		if (!objectInstaller.addFilter(filterBuilder, conditionBuilder))
 		{

@@ -3,19 +3,19 @@
 #include "ifirewallrule.h"
 #include "libwfp/ipaddress.h"
 #include <string>
-#include <cstdint>
 
 namespace rules
 {
 
 class RestrictDns : public IFirewallRule
 {
+	wfp::IpAddress m_relayIp;
 	uint16_t m_relayPort;
 
 public:
 
 	RestrictDns(const std::wstring &tunnelInterfaceAlias, const wfp::IpAddress v4DnsHost, std::unique_ptr<wfp::IpAddress> v6DnsHost,
-		uint16_t relayPort);
+		wfp::IpAddress relayIp, uint16_t relayPort);
 
 	bool apply(IObjectInstaller &objectInstaller) override;
 
