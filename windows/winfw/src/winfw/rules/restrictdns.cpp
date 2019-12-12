@@ -12,10 +12,12 @@ using namespace wfp::conditions;
 namespace rules
 {
 
-RestrictDns::RestrictDns(const std::wstring &tunnelInterfaceAlias, const wfp::IpAddress v4DnsHost, std::unique_ptr<wfp::IpAddress> v6DnsHost)
+RestrictDns::RestrictDns(const std::wstring &tunnelInterfaceAlias, const wfp::IpAddress v4DnsHost, std::unique_ptr<wfp::IpAddress> v6DnsHost,
+	uint16_t relayPort)
 	: m_tunnelInterfaceAlias(tunnelInterfaceAlias)
 	, m_v4DnsHost(v4DnsHost)
 	, m_v6DnsHost(std::move(v6DnsHost))
+	, m_relayPort(relayPort)
 
 {
 }
@@ -55,20 +57,23 @@ bool RestrictDns::apply(IObjectInstaller &objectInstaller)
 		}
 	}
 
-	filterBuilder
-		.name(L"Restrict DNS requests inside the VPN tunnel (IPv4)")
-		.key(MullvadGuids::FilterRestrictDns_Outbound_Tunnel_Ipv4())
-		.layer(FWPM_LAYER_ALE_AUTH_CONNECT_V4);
-
+	if (m_relayPort != 53)
 	{
-		wfp::ConditionBuilder conditionBuilder(FWPM_LAYER_ALE_AUTH_CONNECT_V4);
+		filterBuilder
+			.name(L"Restrict DNS requests inside the VPN tunnel (IPv4)")
+			.key(MullvadGuids::FilterRestrictDns_Outbound_Tunnel_Ipv4())
+			.layer(FWPM_LAYER_ALE_AUTH_CONNECT_V4);
 
-		conditionBuilder.add_condition(ConditionPort::Remote(53));
-		conditionBuilder.add_condition(ConditionIp::Remote(m_v4DnsHost, CompareNeq()));
-
-		if (!objectInstaller.addFilter(filterBuilder, conditionBuilder))
 		{
-			return false;
+			wfp::ConditionBuilder conditionBuilder(FWPM_LAYER_ALE_AUTH_CONNECT_V4);
+
+			conditionBuilder.add_condition(ConditionPort::Remote(53));
+			conditionBuilder.add_condition(ConditionIp::Remote(m_v4DnsHost, CompareNeq()));
+
+			if (!objectInstaller.addFilter(filterBuilder, conditionBuilder))
+			{
+				return false;
+			}
 		}
 	}
 
