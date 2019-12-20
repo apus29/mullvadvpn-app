@@ -453,7 +453,7 @@ impl<C: OpenVpnBuilder + 'static> OpenVpnMonitor<C> {
             .ca(resource_dir.join("ca.crt"));
         #[cfg(windows)]
         cmd.tunnel_alias(Some(
-            crate::winnet::get_tap_interface_alias().map_err(Error::WinnetError)?,
+            crate::winnet::get_tap_interface_alias().map_err(|_| Error::MissingTapAdapter)?,
         ));
         if let Some(proxy_settings) = params.proxy.clone().take() {
             cmd.proxy_settings(proxy_settings);
